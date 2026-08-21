@@ -1,0 +1,53 @@
+# AlgoVoi Verifiable-Comms Agent gateway -- one clean, isolated container.
+# Build in a clean container and deploy behind a reverse proxy as its own subdomain (agents.algovoi.co.uk).
+# Named + persistent per the container-hygiene rule (create once, keep, reuse).
+services:
+  agent-gateway:
+    build: .
+    image: av-agent-gateway:latest
+    container_name: av-agent-gateway
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8090:8080"   # bind localhost only; nginx terminates TLS + proxies
+    networks:
+      - av-isolated             # dedicated internal bridge: no route to gateway/DB or internet
+    # Hardening to match the clinic container: immutable rootfs, no capabilities, no privilege
+    # escalation, a small writable tmpfs, and pid/memory bounds. The app writes no files (offline
+    # verifier, card built + signed in memory), so read_only is safe.
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    pids_limit: 128
+    mem_limit: 256m
+    environment:
+      # Deliberately sets no gateway feature flags -- this container must not
+      # touch any production gateway's behaviour.
+      PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"   # no .pyc writes -> clean under read_only rootfs
+      # To serve a SIGNED Agent Card (A2A spec 8.4), point at a MOUNTED secret file holding a
+      # 32-byte Ed25519 seed (hex). Preferred over an inline env value so the seed never appears
+      # in `docker inspect`. With no key the card is served unsigned.
+      AGENT_CARD_SIGNING_KEY_FILE: "/run/secrets/agent-card-seed"
+    # Mount the seed read-only at deploy time (host path is operator-chosen, NEVER committed).
+    # The container runs non-root, so the secret MUST be readable by the runtime uid: own the
+    # host file by that uid, mode 0400 (e.g. chown 10001:10001 ...; chmod 400 ...).
+    #   volumes: [ "/path/to/agent-card-signing.hex:/run/secrets/agent-card-seed:ro" ]
+    # No DB, no committed secrets: the verifier is offline and the card is baked in.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=3).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  # Dedicated bridge (NOT the shared default bridge) so this public container is
+  # isolated from the production gateway/DB containers (a security review flagged the
+  # default bridge as an isolation footgun). Not `internal: true` -- that also blocks
+  # host port publishing, which nginx needs. The verifier is offline so egress is
+  # unused; add an nftables egress-deny for this container's subnet at deploy time for
+  # belt-and-suspenders.
+  av-isolated:
+    driver: bridge

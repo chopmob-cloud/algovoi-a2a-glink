@@ -1,0 +1,66 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+dist/
+build/
+*.wav
+*.flac
+*.mp3
+artifacts/
+.env
+.env.*
+!.env.example
+
+# --- Secrets / private keys: NEVER commit ------------------------------------
+# Ed25519 seeds, keypairs, ambassador/clinic signing material.
+*key*.json
+*_key.json
+ambassador_key.json
+clinic_signing_key*
+*.seed
+*.pem
+*.pfx
+*.p12
+*.key
+*.priv
+seed_hex*
+.secrets/
+secrets/
+
+# --- Operational / enrollment runtime state (not source; may hold peer data) --
+clinic_enrolled.json
+clinic_status.json
+*audit*.jsonl
+clinic_enrolled_store.jsonl
+*_store.jsonl
+outreach_ledger.json
+outreach_audit.jsonl
+candidates.json
+pilot_drafts.json
+discovery_report.json
+rate_window.json
+optout.json
+landscape_probe*.json
+sweep_log.jsonl
+sweep_stdout.log
+cards_raw/
+
+# --- Bulky / regenerable validation logs -------------------------------------
+*.raw.log
+*.run.log
+
+# --- Internal-only: never publish (ops probes, internal design/scoping notes) -
+# Live-endpoint operational probes and internal architecture/design docs are kept
+# out of the public repo. Their public-facing findings live in docs/ narratives.
+clinic/verify_bic_check.py
+clinic/live_verify_check.py
+docs/hosted-directory-design.md
+docs/trust-registry-design.md
+docs/validation-secured-gibberlink.md
+# Marketing / show-and-tell post drafts are authored elsewhere, not shipped here.
+docs/showandtell-*.md
+*_internal.md
+*-internal.md
+*.internal.*

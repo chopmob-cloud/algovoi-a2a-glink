@@ -1,0 +1,35 @@
+AlgoVoi A2A GibberLink
+Copyright 2026 AlgoVoi
+
+This product includes software developed by AlgoVoi (https://algovoi.co.uk).
+
+Licensed under the Apache License, Version 2.0. See the LICENSE file.
+
+------------------------------------------------------------------------
+Acknowledgements
+------------------------------------------------------------------------
+
+This project builds on open standards and open-source work by others. It
+does not vendor their code; the runtime dependencies are installed
+separately (see requirements.txt) and remain under their own licenses.
+
+Standards
+  - RFC 9421  HTTP Message Signatures
+  - RFC 9530  Digest Fields (Content-Digest)
+  - RFC 8785  JSON Canonicalization Scheme (JCS)
+  - Ed25519 (RFC 8032) signatures
+
+Third-party software
+  - ggwave, the data-over-sound codec that carries the native gibberlink
+    audio channel. Copyright Georgi Gerganov, MIT License.
+    https://github.com/ggerganov/ggwave
+  - PyNaCl / libsodium, for Ed25519 signing and verification.
+  - rfc8785, a Python implementation of the JSON Canonicalization Scheme.
+  - pqcrypto, post-quantum signature primitives used by the anchored demos.
+
+Concept
+  - "GibberLink" refers to the idea of two AI agents dropping from spoken
+    language to an efficient data-over-sound protocol once they recognise
+    each other as agents. This project implements a signed, verifiable
+    variant of that idea; it is an independent implementation and is not
+    affiliated with or endorsed by the authors of the original demo.

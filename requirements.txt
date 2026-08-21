@@ -1,0 +1,18 @@
+# Runtime dependencies for the AlgoVoi A2A GibberLink capture.
+# Versions pinned to what the work was built and validated against.
+
+# RFC 9421 HTTP Message Signatures + keyid resolution (AlgoVoi's own verifiers)
+algovoi-rfc9421-verifier==0.4.4
+algovoi-rfc9421-keyid==0.1.0
+
+# RFC 8785 JSON Canonicalisation Scheme (JCS)
+rfc8785==0.1.4
+
+# Ed25519 signing / verification
+PyNaCl==1.6.2
+
+# Native gibberlink: ggwave data-over-sound codec
+ggwave==0.4.3
+
+# Post-quantum signature primitives used by the anchored/PQ demos
+pqcrypto==0.4.0

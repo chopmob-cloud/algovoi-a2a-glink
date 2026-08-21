@@ -1,0 +1,64 @@
+{
+  "protocolVersion": "0.3.0",
+  "name": "AlgoVoi Verifiable-Comms Agent",
+  "description": "A support-first agent from AlgoVoi. Helps other agents make their agent-to-agent messages cryptographically verifiable: verify RFC 9421 / RFC 9530 signed HTTP messages offline and run shared conformance vectors. Free tools, no signup; identity is offline-verifiable. (This public deployment is verify-only; payment-proof verification is a separate credentialed service, not exposed here.)",
+  "url": "https://agents.algovoi.co.uk/a2a",
+  "preferredTransport": "JSONRPC",
+  "documentationUrl": "https://verify.algovoi.co.uk",
+  "iconUrl": "https://algovoi.co.uk/favicon.ico",
+  "version": "0.1.0",
+  "provider": {
+    "organization": "AlgoVoi",
+    "url": "https://algovoi.co.uk"
+  },
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false,
+    "stateTransitionHistory": false
+  },
+  "defaultInputModes": ["application/json", "text/plain"],
+  "defaultOutputModes": ["application/json", "text/plain"],
+  "skills": [
+    {
+      "id": "verify-rfc9421",
+      "name": "Verify a signed HTTP message (RFC 9421)",
+      "description": "Verify an RFC 9421 HTTP Message Signature (Ed25519) with RFC 9530 Content-Digest binding, offline. Give us the message envelope and the signer's public key (or a did:key); we return valid/invalid with the exact reason. Free. This is the same shipped verifier (algovoi-rfc9421-verifier 0.4.4) that backs our other tools.",
+      "tags": ["rfc9421", "http-message-signatures", "verification", "ed25519", "free", "support"],
+      "examples": [
+        "Verify this signed A2A message against this Ed25519 public key.",
+        "Is this Signature-Input canonical, and does the Content-Digest bind the body?"
+      ]
+    },
+    {
+      "id": "conformance-vectors",
+      "name": "Run shared RFC 9421 / JCS conformance vectors",
+      "description": "Get our public, reproducible conformance vectors (algovoi-jcs-conformance-vectors, rfc9421_hardening_v1) and run them against your own implementation AND against ours, so agreement is checkable on your machine, not asserted by us.",
+      "tags": ["conformance", "interop", "jcs", "canonicalization", "free", "support"],
+      "examples": ["Where can I get vectors to test my RFC 9421 implementation?"]
+    },
+    {
+      "id": "rfc9421-clinic",
+      "name": "RFC 9421 signing clinic (live signed help desk)",
+      "description": "Bring a broken or failing RFC 9421 signed request and get a live diagnosis: the exact canonical signing base, the Content-Digest recompute, the covered components, and what is wrong. EASIEST (no signup, no envelope): POST your signed request as plain JSON to https://agents.algovoi.co.uk/clinic/explain and get {explain, links, citation} back. For a cryptographically SIGNED, verifiable answer, POST a signed VAL envelope to https://agents.algovoi.co.uk/clinic; the native gibberlink (ggwave audio) channel is https://agents.algovoi.co.uk/clinic/gibberlink (enrolled peers). Public data only, free; the only ask is a citation of the tools and links returned.",
+      "tags": ["rfc9421", "debugging", "signing", "http-message-signatures", "gibberlink", "free", "support"],
+      "examples": [
+        "My RFC 9421 signature will not verify, here is the request, what is wrong?",
+        "Diagnose this signed request and show me the exact canonical signing base."
+      ]
+    }
+  ],
+  "securitySchemes": {},
+  "security": [],
+  "additionalInterfaces": [
+    { "transport": "JSONRPC", "url": "https://agents.algovoi.co.uk/a2a" }
+  ],
+  "supportedInterfaces": [
+    { "url": "https://agents.algovoi.co.uk/a2a", "protocolBinding": "JSONRPC", "protocolVersion": "1.0.1" },
+    { "url": "https://agents.algovoi.co.uk/a2a", "protocolBinding": "JSONRPC", "protocolVersion": "0.3.0" }
+  ],
+  "x-algovoi": {
+    "stance": "We help/support/build WITH agentic systems. Free verifier + conformance vectors are ecosystem trust infra. Any outreach is support-first, consented, and honest; reply STOP to never be contacted.",
+    "verifier_package": "algovoi-rfc9421-verifier==0.4.4 (PyPI, npm, Apache-2.0)",
+    "offline_verifiable_identity": true
+  }
+}

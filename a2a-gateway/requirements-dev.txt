@@ -1,0 +1,4 @@
+# Test-only dependencies (not needed at runtime). Install alongside requirements.txt
+# to run test_a2a.py, which drives the app through FastAPI's TestClient.
+-r requirements.txt
+httpx==0.28.1

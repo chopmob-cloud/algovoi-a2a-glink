@@ -1,0 +1,7 @@
+# Pinned so the container is reproducible. The verifier is the shipped, published
+# Apache-2.0 package -- the same one the secured-gibberlink work validated.
+algovoi-rfc9421-verifier==0.4.4
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pynacl==1.6.2
+rfc8785==0.1.4
