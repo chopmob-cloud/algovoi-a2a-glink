@@ -393,9 +393,16 @@ Main site: <a href="https://algovoi.co.uk">algovoi.co.uk</a></p>
 
 @app.get("/")
 def landing(request: Request):
+    # HTML is the DEFAULT: search and answer-engine crawlers must see the title,
+    # meta description and JSON-LD, and several AI crawlers send Accept: */*
+    # (routing */* to plain text would hide the structured data from exactly the
+    # bots the page exists for). The byte-stable plain banner stays available to
+    # any client that explicitly prefers text/plain (and it is embedded verbatim
+    # in the HTML's <pre> anyway). The A2A machine surface (/.well-known/
+    # agent-card.json, /a2a, /verify/*) is untouched.
     accept = (request.headers.get("accept") or "").lower()
-    if "text/html" in accept:
-        from fastapi.responses import HTMLResponse
+    if "text/plain" in accept and "text/html" not in accept:
+        return PlainTextResponse(_LANDING_TEXT)
+    from fastapi.responses import HTMLResponse
 
-        return HTMLResponse(_LANDING_HTML)
-    return PlainTextResponse(_LANDING_TEXT)
+    return HTMLResponse(_LANDING_HTML)
