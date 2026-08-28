@@ -307,18 +307,95 @@ def a2a_hint() -> JSONResponse:
                          "card": "/.well-known/agent-card.json"})
 
 
-@app.get("/", response_class=PlainTextResponse)
-def landing() -> str:
-    return (
-        "AlgoVoi Verifiable-Comms Agent\n"
-        "We help agents make their messages offline-verifiable. Free tools, no signup.\n\n"
-        "  GET  /.well-known/agent-card.json   (A2A discovery)\n"
-        "  POST /a2a                           (A2A JSON-RPC message/send -- agent-to-agent front door)\n"
-        "  POST /verify/rfc9421                (verify a signed HTTP message)\n"
-        "  POST /verify/rfc9421/explain        (debug: pass/fail PLUS why + canonical base; diff your own base)\n"
-        "  POST /verify/rfc9421/sign           (playground: get a known-good signed request, ephemeral demo key)\n"
-        "  GET  /health\n\n"
-        f"verifier: algovoi-rfc9421-verifier {VERIFIER_VERSION}\n"
-        "docs: https://verify.algovoi.co.uk\n"
-        "We build WITH the agent ecosystem. Support-first, honest, opt-out always.\n"
-    )
+# The plain-text banner is the MACHINE-FIRST landing (agents, curl) and must stay
+# byte-stable; the HTML variant below is served ONLY when the client explicitly
+# accepts text/html (browsers, search/answer-engine crawlers) so the homepage can
+# carry a title, a meta description and JSON-LD without changing the agent surface.
+_LANDING_TEXT = (
+    "AlgoVoi Verifiable-Comms Agent\n"
+    "We help agents make their messages offline-verifiable. Free tools, no signup.\n\n"
+    "  GET  /.well-known/agent-card.json   (A2A discovery)\n"
+    "  POST /a2a                           (A2A JSON-RPC message/send -- agent-to-agent front door)\n"
+    "  POST /verify/rfc9421                (verify a signed HTTP message)\n"
+    "  POST /verify/rfc9421/explain        (debug: pass/fail PLUS why + canonical base; diff your own base)\n"
+    "  POST /verify/rfc9421/sign           (playground: get a known-good signed request, ephemeral demo key)\n"
+    "  GET  /health\n\n"
+    f"verifier: algovoi-rfc9421-verifier {VERIFIER_VERSION}\n"
+    "docs: https://verify.algovoi.co.uk\n"
+    "We build WITH the agent ecosystem. Support-first, honest, opt-out always.\n"
+)
+
+_LANDING_JSONLD = json.dumps({
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "Organization",
+            "@id": "https://algovoi.co.uk/#org",
+            "name": "AlgoVoi",
+            "url": "https://algovoi.co.uk",
+        },
+        {
+            "@type": "WebSite",
+            "@id": "https://agents.algovoi.co.uk/#site",
+            "url": "https://agents.algovoi.co.uk",
+            "name": "AlgoVoi Agent Clinic",
+            "publisher": {"@id": "https://algovoi.co.uk/#org"},
+        },
+        {
+            "@type": "SoftwareApplication",
+            "name": "AlgoVoi Verifiable-Comms Agent",
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": "Web / API",
+            "url": "https://agents.algovoi.co.uk",
+            "description": (
+                "Free clinic for AI agents: verify RFC 9421 HTTP message "
+                "signatures (Signature-Input, Signature, Content-Digest), get a "
+                "pass or fail verdict with the canonical signature base explained, "
+                "and reach it over A2A JSON-RPC or plain HTTP. No signup."
+            ),
+            "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+            "publisher": {"@id": "https://algovoi.co.uk/#org"},
+        },
+    ],
+}, separators=(",", ":"))
+
+_LANDING_HTML = f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AlgoVoi Agent Clinic: free RFC 9421 signature verification for AI agents</title>
+<meta name="description" content="Free clinic for AI agents: verify RFC 9421 HTTP message signatures, debug Signature-Input and Content-Digest failures with the canonical base explained, and talk A2A JSON-RPC. No signup, no key.">
+<link rel="canonical" href="https://agents.algovoi.co.uk/">
+<script type="application/ld+json">{_LANDING_JSONLD}</script>
+<style>
+  body {{ background:#0D1117; color:#e6edf3; font:15px/1.6 system-ui,sans-serif;
+         max-width:760px; margin:40px auto; padding:0 20px; }}
+  pre {{ background:#161b22; border:1px solid #30363d; border-radius:10px;
+        padding:16px; overflow-x:auto; font-size:13px; line-height:1.5; }}
+  a {{ color:#58a6ff; }}
+  h1 {{ font-size:22px; }}
+</style>
+</head>
+<body>
+<h1>AlgoVoi Agent Clinic</h1>
+<p>Free tools that help AI agents make their messages offline-verifiable: verify
+an <strong>RFC 9421 HTTP message signature</strong>, see exactly why a signature
+fails (with the canonical signature base), or fetch a known-good signed request
+to compare against. Reachable over <strong>A2A JSON-RPC</strong> and plain HTTP.
+No signup, no API key.</p>
+<pre>{_LANDING_TEXT}</pre>
+<p>Docs: <a href="https://verify.algovoi.co.uk">verify.algovoi.co.uk</a> ·
+Main site: <a href="https://algovoi.co.uk">algovoi.co.uk</a></p>
+</body>
+</html>"""
+
+
+@app.get("/")
+def landing(request: Request):
+    accept = (request.headers.get("accept") or "").lower()
+    if "text/html" in accept:
+        from fastapi.responses import HTMLResponse
+
+        return HTMLResponse(_LANDING_HTML)
+    return PlainTextResponse(_LANDING_TEXT)
