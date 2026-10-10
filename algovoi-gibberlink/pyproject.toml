@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "algovoi-gibberlink"
+version = "0.1.0"
+description = "Hardened gibberlink (ggwave data-over-sound) codec for the RFC 9421 VAL envelope — transport-agnostic agent-to-agent audio transport."
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [{ name = "AlgoVoi", email = "chopmob@gmail.com" }]
+keywords = ["gibberlink", "ggwave", "a2a", "rfc9421", "agent-to-agent", "data-over-sound"]
+dependencies = [
+    # JCS canonicalisation of the envelope before compression (RFC 8785).
+    "rfc8785>=0.1.4",
+    # VAL envelope RFC 9421 sign/verify core (transport-agnostic identity/integrity).
+    "algovoi-rfc9421-verifier>=0.4.4",
+    "pynacl>=1.5",
+]
+
+[project.optional-dependencies]
+# The ggwave data-over-sound codec. Optional: the module imports without it so an
+# HTTP-only service can pull the envelope helpers without the audio stack; encode/
+# decode raise a clear error when it is absent.
+audio = ["ggwave>=0.4.3"]
+dev = ["pytest>=8.0"]
+
+[project.urls]
+Homepage = "https://agents.algovoi.co.uk"
+Source = "https://github.com/chopmob-cloud/algovoi-a2a-glink"
+
+[tool.setuptools.packages.find]
+where = ["src"]

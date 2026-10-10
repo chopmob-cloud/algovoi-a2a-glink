@@ -32,6 +32,7 @@ compression, and benchmark acceptance criteria.
 clinic/        the RFC 9421 signing clinic and its native gibberlink transport
 ambassador/    the outbound side: speak native gibberlink to a peer clinic
 a2a-gateway/   an A2A JSON-RPC front door (/a2a message/send) + agent card
+algovoi-gibberlink/  reusable package for the bounded audio codec and envelopes
 docs/          wire format, design notes, and validation records
 ```
 
@@ -64,6 +65,9 @@ python clinic/clinic_transport_test.py            # sealed control layer
 python clinic/validate_negotiation.py             # envelope signing / verification
 python clinic/clinic_gibberlink_test.py           # versioned codec profile
 python clinic/clinic_audio_benchmark.py           # machine-readable bandwidth benchmark
+
+# reusable package checks
+PYTHONPATH=algovoi-gibberlink/src python -m pytest algovoi-gibberlink/tests -q
 ```
 
 Runtime dependencies (installed, not vendored): `ggwave`, `PyNaCl`, `rfc8785`,
@@ -79,6 +83,12 @@ freshness, replay protection, session binding, and an explicit transport
 representation. Anchoring a key from a network source requires HTTPS. The
 listener binds to loopback by default; opening it to a network is a deliberate,
 separate step.
+
+Codec profile negotiation is fail-closed. A peer must advertise supported
+integer versions and protocols; the highest common codec version is selected,
+with v2 preferred and legacy v1 retained for compatibility. A v1 request is
+answered with v1 framing so older peers are not given a successful response they
+cannot decode. Malformed capability data is rejected before profile selection.
 
 ## Live services
 
@@ -97,6 +107,11 @@ Every suite and the bandwidth benchmark were run in a fresh `python:3.11-slim`
 container with dependencies from `requirements.txt` only; results are in
 [docs/validation-report.md](docs/validation-report.md) and
 [benchmarks/gibberlink-bandwidth.json](benchmarks/gibberlink-bandwidth.json).
+
+The current revision also validates the reusable package, legacy reply-in-kind
+behaviour, malformed capability rejection, bounded decompression, HTTP and
+native audio end-to-end exchanges, and the sealed transport controls on a clean
+VM2 validation environment.
 
 ## License
 

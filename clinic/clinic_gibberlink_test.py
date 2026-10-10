@@ -47,8 +47,11 @@ def main() -> int:
                    all(not f.startswith("GL") and f.split(":", 2)[0].isdigit() for f in v1_frames)))
     selected = gl.select_profile({"versions": [2], "protocols": [0, 2], "max_frame_data_chars": 80, "silence_ms": 50})
     checks.append(("profile-selection", selected.protocol_id == 2 and selected.frame_data_chars == 80 and selected.silence_ms == 50))
+    selected_v1 = gl.select_profile({"versions": [1], "protocols": [2]})
+    checks.append(("legacy-only-peer-selects-v1",
+                   selected_v1.version == gl.LEGACY_CODEC_VERSION and selected_v1.protocol_id == 2))
     try:
-        gl.select_profile({"versions": [1], "protocols": [2]})
+        gl.select_profile({"versions": [9], "protocols": [2]})
     except ValueError:
         checks.append(("unsupported-version-rejected", True))
     else:

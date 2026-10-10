@@ -102,18 +102,33 @@ def select_profile(peer: dict | None = None) -> CodecProfile:
     supported common protocol is selected. A future benchmark table may refine
     this choice without changing the wire format.
     """
-    peer = peer or {}
-    peer_versions = set(peer.get("versions", [CODEC_VERSION, LEGACY_CODEC_VERSION]))
-    if CODEC_VERSION not in peer_versions:
-        raise ValueError("peer does not support codec version 2")
-    peer_protocols = set(peer.get("protocols", SUPPORTED_PROTOCOLS))
+    if peer is None:
+        peer = {}
+    if not isinstance(peer, dict):
+        raise ValueError("peer capabilities must be an object")
+    raw_versions = peer.get("versions", [CODEC_VERSION, LEGACY_CODEC_VERSION])
+    raw_protocols = peer.get("protocols", SUPPORTED_PROTOCOLS)
+    if not isinstance(raw_versions, (list, tuple, set, frozenset)):
+        raise ValueError("peer versions must be an array")
+    if not isinstance(raw_protocols, (list, tuple, set, frozenset)):
+        raise ValueError("peer protocols must be an array")
+    if any(isinstance(value, bool) or not isinstance(value, int) for value in raw_versions):
+        raise ValueError("peer versions must contain integers")
+    if any(isinstance(value, bool) or not isinstance(value, int) for value in raw_protocols):
+        raise ValueError("peer protocols must contain integers")
+    peer_versions = set(raw_versions)
+    common_versions = sorted({CODEC_VERSION, LEGACY_CODEC_VERSION} & peer_versions, reverse=True)
+    if not common_versions:
+        raise ValueError("peer supports neither codec version 2 nor legacy version 1")
+    peer_protocols = set(raw_protocols)
     common = sorted(set(SUPPORTED_PROTOCOLS) & peer_protocols)
     if not common:
         raise ValueError("no common ggwave protocol")
     protocol = DEFAULT_PROTOCOL if DEFAULT_PROTOCOL in common else common[0]
     peer_frame = int(peer.get("max_frame_data_chars", DEFAULT_FRAME_DATA))
     peer_silence = int(peer.get("silence_ms", DEFAULT_SILENCE_MS))
-    return CodecProfile(frame_data_chars=min(DEFAULT_FRAME_DATA, peer_frame),
+    return CodecProfile(version=common_versions[0],
+                        frame_data_chars=min(DEFAULT_FRAME_DATA, peer_frame),
                         protocol_id=protocol, silence_ms=min(DEFAULT_SILENCE_MS, peer_silence))
 
 
