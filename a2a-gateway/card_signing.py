@@ -58,7 +58,12 @@ def canonical_payload(card: dict) -> bytes:
 def sign_card(card: dict, seed_hex: str, kid: str = "algovoi-agent-ed25519-v1") -> dict:
     """Return one AgentCardSignature {protected, signature} for `card`. Ed25519.
     The protected header carries alg/typ/kid plus the public key as an OKP jwk."""
-    sk = SigningKey(bytes.fromhex(seed_hex))
+    # M3: validate seed is exactly 32 bytes before handing to PyNaCl; a short seed
+    # is silently zero-padded by some implementations which produces a weak key.
+    seed_bytes = bytes.fromhex(seed_hex)
+    if len(seed_bytes) != 32:
+        raise ValueError(f"Ed25519 seed must be exactly 32 bytes, got {len(seed_bytes)}")
+    sk = SigningKey(seed_bytes)
     pub = sk.verify_key.encode()
     protected = {"alg": "EdDSA", "typ": "JOSE", "kid": kid,
                  "jwk": {"kty": "OKP", "crv": "Ed25519", "x": _b64u(pub)}}
