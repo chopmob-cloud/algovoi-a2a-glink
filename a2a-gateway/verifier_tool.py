@@ -59,6 +59,17 @@ def verify_rfc9421(payload: dict) -> dict[str, Any]:
     except Exception as e:  # noqa: BLE001
         raise VerifyToolError(f"body_b64 is not valid base64: {e}") from e
 
+    # M1: pin to a hard server-side safe-algorithm set; the caller may only
+    # restrict further, never widen to an unsafe algorithm (hmac, rsa-pkcs1v15…).
+    _SAFE_ALGORITHMS = frozenset({"ed25519"})
+    caller_algs = {a.lower() for a in (payload.get("allowed_algorithms") or ["ed25519"])}
+    allowed_algorithms = caller_algs & _SAFE_ALGORITHMS
+    if not allowed_algorithms:
+        raise VerifyToolError(
+            f"allowed_algorithms must be a subset of {sorted(_SAFE_ALGORITHMS)}; "
+            f"got {sorted(caller_algs)}"
+        )
+
     kwargs: dict[str, Any] = dict(
         method=payload["method"],
         authority=payload["authority"],
@@ -68,15 +79,17 @@ def verify_rfc9421(payload: dict) -> dict[str, Any]:
         scheme=payload.get("scheme", "https"),
         public_key=public_key,
         require_content_digest=bool(payload.get("require_content_digest", True)),
-        allowed_algorithms=set(payload.get("allowed_algorithms", ["ed25519"])),
+        allowed_algorithms=allowed_algorithms,
     )
     if payload.get("expected_tag"):
         kwargs["expected_tag"] = payload["expected_tag"]
         kwargs["require_tag"] = True
+    # M2: ignore caller-supplied `now` — always use real wall-clock time so the
+    # caller cannot bypass freshness by injecting a future or far-past timestamp.
+    # Cap max_age_seconds at 1 h so a caller cannot open an arbitrarily wide window.
+    _MAX_AGE_CAP = 3600
     if payload.get("max_age_seconds") is not None:
-        kwargs["max_age_seconds"] = int(payload["max_age_seconds"])
-    if payload.get("now") is not None:
-        kwargs["now"] = int(payload["now"])
+        kwargs["max_age_seconds"] = min(int(payload["max_age_seconds"]), _MAX_AGE_CAP)
 
     res = verify_request(**kwargs)
     return {
@@ -87,7 +100,7 @@ def verify_rfc9421(payload: dict) -> dict[str, Any]:
             "content_digest": kwargs["require_content_digest"],
             "algorithms": sorted(kwargs["allowed_algorithms"]),
             "tag_enforced": bool(payload.get("expected_tag")),
-            "freshness_enforced": payload.get("max_age_seconds") is not None,
+            "freshness_enforced": kwargs.get("max_age_seconds") is not None,
         },
     }
 
@@ -254,11 +267,14 @@ def explain_rfc9421(payload: dict) -> dict:
     valid, errors = None, []
     try:
         public_key = _decode_pubkey(payload)
+        _caller_algs = {a.lower() for a in (payload.get("allowed_algorithms") or ["ed25519"])}
+        _safe_algs = frozenset({"ed25519"})
+        _algs = (_caller_algs & _safe_algs) or _safe_algs
         res = verify_request(method=payload["method"], authority=payload["authority"],
                              path=payload["path"], headers=headers, body=body,
                              scheme=payload.get("scheme", "https"), public_key=public_key,
                              require_content_digest=bool(payload.get("require_content_digest", True)),
-                             allowed_algorithms=set(payload.get("allowed_algorithms", ["ed25519"])))
+                             allowed_algorithms=_algs)
         valid, errors = bool(res.valid), list(res.errors or [])
     except VerifyToolError:
         errors = ["no public_key_hex/did_key supplied: showing the signing base + params only, not a verdict"]

@@ -17,7 +17,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 from verifier_tool import (
@@ -83,6 +83,20 @@ async def _bound_request_size(request: Request, call_next):
     return await call_next(request)
 
 
+async def _bounded_json(request: Request) -> dict:
+    """G1: enforce body size cap before JSON parsing on the /verify/* endpoints.
+    The Content-Length middleware above only catches declared sizes; chunked
+    transfer encoding sends no Content-Length, so we read the raw body here and
+    check its actual length before handing off to FastAPI's JSON parser."""
+    raw = await request.body()
+    if len(raw) > MAX_BODY_BYTES:
+        raise HTTPException(status_code=413, detail="request too large")
+    try:
+        return json.loads(raw)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"invalid JSON: {exc}") from exc
+
+
 @app.get("/.well-known/agent-card.json")
 def agent_card() -> JSONResponse:
     # A2A discovery endpoint. Cached lightly; the card is static per deploy.
@@ -102,7 +116,7 @@ def health() -> dict:
 
 
 @app.post("/verify/rfc9421")
-def verify(payload: dict) -> dict:
+def verify(payload: dict = Depends(_bounded_json)) -> dict:
     """Verify a signed message offline. Caller supplies the envelope + the key they
     EXPECT the signer to hold (anchoring). Returns valid/errors -- never throws on a
     verification failure, only on a malformed request."""
@@ -113,7 +127,7 @@ def verify(payload: dict) -> dict:
 
 
 @app.post("/verify/rfc9421/explain")
-def explain(payload: dict) -> dict:
+def explain(payload: dict = Depends(_bounded_json)) -> dict:
     """Debug a signed message: pass/fail PLUS why -- the exact canonical signing base, covered components,
     params, a Content-Digest recomputation, and human 'how to fix' notes. Free. This is the #1 thing agent
     builders asked us to ship. public_key_hex/did_key is optional; without it you still get the signing base."""
@@ -124,7 +138,7 @@ def explain(payload: dict) -> dict:
 
 
 @app.post("/verify/rfc9421/sign")
-def sign_demo(payload: dict) -> dict:
+def sign_demo(payload: dict = Depends(_bounded_json)) -> dict:
     """Known-good signer/playground: give raw request inputs, get a correctly-signed request + the
     signing base + an EPHEMERAL demo key to verify it with. NEVER send a private key — it signs with a
     fresh throwaway key so you can diff your own signer against a reference. Free."""
