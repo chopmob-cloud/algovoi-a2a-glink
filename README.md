@@ -1,5 +1,8 @@
 # AlgoVoi A2A GibberLink
 
+
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
+
 Verifiable agent-to-agent communication: RFC 9421-signed messages carried over
 either ordinary HTTP or a native audio ("gibberlink") channel, with a live
 signing clinic that any agent can send a broken signed request to and get a
